@@ -9,11 +9,11 @@ The subdirectories contain some examples for building different types of contain
 docker run -d -p 9000:9000 -v /var/run/docker.sock:/var/run/docker.sock portainer/portainer
 ````
 
-Running the above command pulls [portainer/portainer](https://hub.docker.com/r/portainer/portainer/) from [docker hub](https://hub.docker.com/explore/), installs the image, then fires up a container in detached mode (**-d**) and binds the container port 9000 to host port 9000 (**-p 9000:9000**). The **-v /var/run/docker.sock:/var/run/docker.sock** switch provides the container with access to the docker socket to allow processes running in that container to extract information about other containers.
+Running the above command pulls [portainer/portainer](https://hub.docker.com/r/portainer/portainer/) from [docker hub](https://hub.docker.com/explore/), installs the image, then fires up a container in detached mode (**-d**) and binds the container port 9000 to host port 9000 (**-p 9000:9000**). The **-v /var/run/docker.sock:/var/run/docker.sock** switch provides the container with access to the docker socket, which allows processes running in that container to extract information about other containers.
 
-Portainer is a really useful and intuitive way to reduce the *barrier to entry* of docker, it's especially useful for helping to tidy up 'orphaned' containers and images which are fairly easily missed when using the basic docker CLI.
+Portainer is a really useful and intuitive way to reduce the *barrier to entry* of docker, it is especially useful for helping to tidy up 'orphaned' containers and images, which are fairly easily missed when using the basic docker CLI.
 
-Full Portainer documentatiuon may be found [here](https://portainer.readthedocs.io/en/stable/).
+Full Portainer documentation may be found [here](https://portainer.readthedocs.io/en/stable/).
 
 ## Cheat Sheet
 Download, install and run the official hello-world image
@@ -21,7 +21,7 @@ Download, install and run the official hello-world image
 docker run hello-world
 ````
 
-By default a container’s file system persists even after the container exits. This makes debugging a lot easier (since you can inspect the final state) and you retain all your data by default. But if you are running short-term foreground processes, these container file systems can really pile up. If instead you’d like docker to automatically clean up the container and remove the file system when the container exits, you can add the **--rm** flag
+By default a container’s file system persists even after the container exits. This makes debugging a lot easier (since you can inspect the final state) and you retain all your data by default. If, however, you are running short-term foreground processes, these container file systems can really pile up. If instead you’d like docker to automatically clean up the container and remove the file system when the container exits, you can add the **--rm** flag
 ````
 docker run --rm hello-world
 ````
