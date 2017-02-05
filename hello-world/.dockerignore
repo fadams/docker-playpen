@@ -1,0 +1,12 @@
+*.md
+*.sh
+*~
+*/hello
+.dockerignore
+.git
+#Dockerfile*
+#Dockerfile.build
+LICENSE
+README.txt
+#CMakeLists.txt
+build

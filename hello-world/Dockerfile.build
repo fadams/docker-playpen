@@ -1,0 +1,26 @@
+# explicitly use Debian for maximum cross-architecture compatibility
+FROM debian:jessie-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+		gcc \
+		libc6-dev \
+		make \
+		cmake \
+	&& rm -rf /var/lib/apt/lists/*
+
+WORKDIR /usr/src/hello
+COPY . .
+
+RUN set -ex; \
+    pwd; \
+    ls -al; \
+    mkdir build; \
+    ls -al; \
+    cd build; \
+	cmake ..; \
+	make
+
+# docker run --rm hello-world:build
+# will execute the hello program, however we want to extract it.
+CMD ["./hello"]
+
