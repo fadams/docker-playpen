@@ -4,7 +4,7 @@ Playpen repository for docker experiments.
 The subdirectories contain some examples for building different types of containers, for example [hello-world](hello-world) illustrates building a fairly minimal (1.8K) image by building a static executable, more interestingly is also illustrates how to do a *fully dockerised build* where the **entire build toolchain and executable** are built inside a docker container.
 
 ## Portainer
-[Portainer](http://portainer.io/) is a simple management UI for docker, the source is [here](https://github.com/portainer/portainer) but it is itself dockerised and may be installed and by simply running the following command:
+[Portainer](http://portainer.io/) is a simple management UI for docker, the source is [here](https://github.com/portainer/portainer) but it is itself dockerised and may be installed and run by simply running the following command:
 ````
 docker run -d -p 9000:9000 -v /var/run/docker.sock:/var/run/docker.sock portainer/portainer
 ````
