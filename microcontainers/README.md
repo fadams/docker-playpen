@@ -15,9 +15,9 @@ and then do
 ````
 docker images
 ````
-You might be surprised to note that the image is **663MB**
+You might be surprised to note that the image is **663MB**.
 
-and your microservice just might be not quite as "micro" as you were expecting!
+and your microservice *just might* not be  quite as "micro" as you were expecting!
 
 ![toobig](toobig.jpg)
 
@@ -25,4 +25,14 @@ The idea of a microcontainer is that it contains only the OS libraries and langu
 
 https://www.iron.io/microcontainers-tiny-portable-containers/
 
+## Enter Alpine
+Fortunately Docker has recently started giving the option using [Alpine](https://alpinelinux.org/) as the base for official images which makes things **a lot** smaller.
 
+````
+docker pull node:alpine
+````
+and then do
+````
+docker images
+````
+Which is significantly smaller than the previous image weighing in at only 54.6 MB.
