@@ -43,4 +43,3 @@ docker build -t hello-world .
 # Remove the executable now that the docker image has been built
 rm -rf ./hello
 
-
