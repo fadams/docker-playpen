@@ -21,12 +21,12 @@ and your microservice *just might* not be  quite as "micro" as you were expectin
 
 ![toobig](toobig.jpg)
 
-The idea of a microcontainer is that it contains only the OS libraries and language dependencies required to run an application and the application itself. Nothing more.
+The idea of a microcontainer is that it contains only the OS libraries and language dependencies required to run an application plus the application itself. Nothing more.
 
 https://www.iron.io/microcontainers-tiny-portable-containers/
 
 ## Enter Alpine
-Fortunately Docker has recently started giving the option using [Alpine](https://alpinelinux.org/) as the base for official images which makes things **a lot** smaller.
+Fortunately Docker has recently started giving the option using [Alpine Linux](https://alpinelinux.org/) as the base for official images which makes things **a lot** smaller.
 
 ````
 docker pull node:alpine
@@ -36,3 +36,13 @@ and then do
 docker images
 ````
 Which is significantly smaller than the previous image weighing in at only 54.6 MB.
+
+However [iron.io](http://www.iron.io) have really gone to town and built uber tiny Docker images for a wide range of languages also based on [Alpine Linux](https://alpinelinux.org/).
+````
+docker pull iron/node
+````
+and then do
+````
+docker images
+````
+Which has reduced the size of the base Node image to only **18.6 MB**
