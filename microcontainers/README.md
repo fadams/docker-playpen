@@ -10,11 +10,9 @@ http://microservices.io/patterns/index.html
 however if, for example, you go ahead and naively pull the official Node image from dockerhub
 ````
 docker pull node
-````
-and then do
-````
 docker images
 ````
+
 You might be surprised to note that the image is **663MB**.
 
 and your microservice *just might* not be  quite as "micro" as you were expecting!
@@ -30,19 +28,38 @@ Fortunately Docker has recently started giving the option using [Alpine Linux](h
 
 ````
 docker pull node:alpine
-````
-and then do
-````
 docker images
 ````
+
 Which is significantly smaller than the previous image weighing in at only 54.6 MB.
 
 However [iron.io](http://www.iron.io) have really gone to town and built uber tiny Docker images for a wide range of languages also based on [Alpine Linux](https://alpinelinux.org/).
+
+https://github.com/iron-io/dockers
+
+https://hub.docker.com/u/iron/
+
 ````
 docker pull iron/node
-````
-and then do
-````
 docker images
 ````
+
 Which has reduced the size of the base Node image to only **18.6 MB**
+
+
+## Rolling your own...
+As a first stab at rolling our own Alpine based Node image we start with a Dockerfile that looks like this:
+````
+FROM alpine
+
+RUN apk update && apk upgrade \
+    && apk add nodejs \
+    && npm uninstall -g npm \
+    && rm -rf /var/cache/apk/*
+````
+and build it like this:
+````
+docker build --no-cache -t alpine/node .
+````
+
+Which at 28.2 MB is somewhat larger than the iron/node image (which uses a custom statically linked nodejs)
