@@ -51,3 +51,21 @@ sudo tar -C corefs -c . | docker import - core
 
 docker run --rm -it core /bin/ash
 ````
+
+For those who are interested in archaeology...
+# Make CentOS 5.6 image
+
+````
+curl -O http://archive.kernel.org/centos-vault/5.6/isos/x86_64/CentOS-5.6-x86_64-LiveCD.iso
+7z x CentOS-5.6-x86_64-LiveCD.iso -ocentos
+sudo unsquashfs -f -d livefs/ centos/LiveOS/squashfs.img
+mkdir rootfs
+sudo mount livefs/LiveOS/ext3fs.img rootfs
+sudo tar -C rootfs -c . | docker import - centos-5.6
+sudo umount rootfs
+rmdir rootfs
+sudo rm -rf livefs
+rm -rf centos
+
+docker run --rm -it centos-5.6 /bin/bash
+````
