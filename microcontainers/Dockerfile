@@ -5,4 +5,4 @@ RUN apk update && apk upgrade \
     && npm uninstall -g npm \
     && rm -rf /var/cache/apk/*
 
-# docker build --no-cache -t fadams/node .
+# docker build --no-cache -t alpine-node .

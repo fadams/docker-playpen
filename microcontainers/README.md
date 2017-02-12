@@ -33,20 +33,6 @@ docker images
 
 Which is significantly smaller than the previous image weighing in at only 54.6 MB.
 
-However [iron.io](http://www.iron.io) have really gone to town and built uber tiny Docker images for a wide range of languages also based on [Alpine Linux](https://alpinelinux.org/).
-
-https://github.com/iron-io/dockers
-
-https://hub.docker.com/u/iron/
-
-````
-docker pull iron/node
-docker images
-````
-
-Which has reduced the size of the base Node image to only **18.6 MB**
-
-
 ## Rolling your own...
 As a first stab at rolling our own Alpine based Node image we start with a Dockerfile that looks like this:
 ````
@@ -59,7 +45,42 @@ RUN apk update && apk upgrade \
 ````
 and build it like this:
 ````
-docker build --no-cache -t alpine/node .
+docker build --no-cache -t alpine-node .
 ````
 
-Which at 28.2 MB is somewhat larger than the iron/node image (which uses a custom statically linked nodejs)
+Which at **28.2 MB** is somewhat smaller again, probably due to removing npm (remember this is intended to be a runtime image).
+
+This image uses the latest Alpine (currently 3.5.0)
+````
+docker run --rm alpine-node /bin/cat /etc/alpine-release
+````
+
+and nodejs 6.9.2
+````
+docker run --rm alpine-node node --version
+````
+
+## iron.io images
+[iron.io](http://www.iron.io) have really gone to town and built uber tiny Docker images for a wide range of languages also based on [Alpine Linux](https://alpinelinux.org/).
+
+https://github.com/iron-io/dockers
+
+https://hub.docker.com/u/iron/
+
+````
+docker pull iron/node
+docker images
+````
+
+Which has reduced the size of the base Node image to only **18.6 MB**
+
+However note that this image uses an older version of Alpine (currently 3.3.0)
+````
+docker run --rm iron/node /bin/cat /etc/alpine-release
+````
+
+and nodejs 5.10.1
+````
+docker run --rm iron/node node --version
+````
+
