@@ -84,3 +84,12 @@ and nodejs 5.10.1
 docker run --rm iron/node node --version
 ````
 
+## Statically Linked Executables
+For the ultimate in *compact*, for languages that support static linking such as C, C++, go, etc. it is possible to build a container that contains nothing but the executable, see [hello-world](https://github.com/fadams/docker-playpen/tree/master/hello-world) example.
+
+## Dynamically Linked Executables
+It is actually also possible to create minimal Docker images from dynamically linked ELF binaries, though the process is a little more involved http://blog.oddbit.com/2015/02/05/creating-minimal-docker-images/
+
+## Conclusion
+Although it's fine to make use of the official images there are a lot of good reasons [why docker images should be small](https://opensolitude.com/2015/05/13/docker-images-should-be-small.html) and with modest effort it is truly possible to have **micro**services.
+
