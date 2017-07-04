@@ -26,7 +26,24 @@ If full isolation/sandboxing is required it is necessary to bundle an X Server i
 
 ## GPU Acceleration
 
-In an ideal world doing something like
+In an ideal world, with a Dockerfile
+
+```
+FROM debian:stretch-slim
+
+# Install glxgears
+RUN apt-get update && \
+    # Add the packages used
+    apt-get install -y --no-install-recommends \
+	mesa-utils && \
+	rm -rf /var/lib/apt/lists/*
+
+ENV LIBGL_DEBUG verbose
+
+ENTRYPOINT ["glxgears"]
+```
+
+and doing something like
 
 ```
 docker run --rm \
@@ -35,7 +52,7 @@ docker run --rm \
     glxgears
 ```
 
-would "just work", but unfortunately if you have Nvidia hardware you are likely to see something like:
+to run it would "just work", but unfortunately if you have Nvidia hardware you are likely to see something like:
 
 ```
 libGL: screen 0 does not appear to be DRI2 capable
