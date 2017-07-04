@@ -24,9 +24,9 @@ Using token authentication (by mounting the .Xauthority file via something like 
 
 If full isolation/sandboxing is required it is necessary to bundle an X Server in the docker image, rendering to [Xvfb](https://en.wikipedia.org/wiki/Xvfb) (X11 Virtual Frame Buffer) then export the captured Frame Buffer via something like [Xpra](http://xpra.org/) or [VNC](https://en.wikipedia.org/wiki/Virtual_Network_Computing). This approach offers excellent application isolation, but requires many extra packages to be installed in the application image plus additional client software to render the display. More details on fully sandboxed approach TBD.
 
-## GPU Acceleration
+## Nvidia GPU Acceleration Host Requirements
 
-In an ideal world, with a Dockerfile
+In an *ideal world* the following Dockerfile should suffice:
 
 ```
 FROM debian:stretch-slim
@@ -43,7 +43,7 @@ ENV LIBGL_DEBUG verbose
 ENTRYPOINT ["glxgears"]
 ```
 
-and doing something like
+using something like the following to run it:
 
 ```
 docker run --rm \
@@ -52,7 +52,7 @@ docker run --rm \
     glxgears
 ```
 
-to run it would "just work", but unfortunately if you have Nvidia hardware you are likely to see something like:
+Unfortunately the world is not ideal, and if you have Nvidia hardware you are likely to see something like:
 
 ```
 libGL: screen 0 does not appear to be DRI2 capable
@@ -77,18 +77,15 @@ X Error of failed request:  BadValue (integer parameter out of range for operati
 
 Fortunately Nvidia have been working on a [Docker plugin](https://github.com/NVIDIA/nvidia-docker) that makes it relatively straightforward to leverage the power of GPU acceleration.
 
-Note that the nvidia-docker Quick Start instructions are pretty good, but in my case I ran into a few issues. The first was that the nvidia-plugin requires nvidia-modprobe, which is available in some Linux repos, but in my case I ended up building it from [source](https://github.com/NVIDIA/nvidia-modprobe) and installing it. The second issue that I ran into was that the Ubuntu instructions
+Note that the nvidia-docker Quick Start instructions are pretty good, but in my case I ran into a few issues. The first was that the nvidia-plugin requires nvidia-modprobe, which is available in some Linux repos, but in my case I ended up building it from [source](https://github.com/NVIDIA/nvidia-modprobe) and installing it. The second issue that I ran into was that the Ubuntu instructions:
 
 ```
 # Install nvidia-docker and nvidia-docker-plugin
 wget -P /tmp https://github.com/NVIDIA/nvidia-docker/releases/download/v1.0.1/nvidia-docker_1.0.1-1_amd64.deb
 sudo dpkg -i /tmp/nvidia-docker*.deb && rm /tmp/nvidia-docker*.deb
-
-# Test nvidia-smi
-nvidia-docker run --rm nvidia/cuda nvidia-smi
 ```
 
-didn't set up the upstart configuration correctly for me, so the nvidia-docker-plugin didn't start up automatically. As I was able to start nvidia-docker via
+didn't set up the upstart configuration correctly for me, so the nvidia-docker-plugin didn't start up automatically. However, as I was able to start nvidia-docker via
 
 ```
 sudo start nvidia-docker
@@ -107,5 +104,57 @@ start on (local-filesystems and net-device-up and started docker)
 ```
 
 which seems to have resolved the issue.
+
+With nvidia-docker-plugin running all that is required is to use **nvidia-docker run** insead of **docker run** when launching containers, that is to say:
+
+```
+nvidia-docker run --rm \
+    -e DISPLAY=unix$DISPLAY \
+    -v /tmp/.X11-unix:/tmp/.X11-unix \
+    glxgears
+```
+
+## Nvidia GPU Acceleration Container Requirements
+
+Unfortunately, in addition to the host-side tweaks described above it is necessary to make a few additions to Dockerfiles in order to use launch with nvidia-docker.
+
+The following are likely to be required by all Dockerfiles that require Nvidia acceleration. The LABEL is used by nvidia-docker run to decide if the driver volume and the device files are required and things won't work correctly if it's not in place, unfortunately that important piece of information isn't too obvious from the documentation as it's slightly hidden away [here](https://github.com/NVIDIA/nvidia-docker/wiki/Image-inspection#nvidia-docker).
+
+```
+LABEL com.nvidia.volumes.needed="nvidia_driver"
+ENV LD_LIBRARY_PATH /usr/local/nvidia/lib:/usr/local/nvidia/lib64:${LD_LIBRARY_PATH}
+```
+
+Some other applications might require one or both of the following additions to the Dockerfile:
+
+```
+ENV PATH /usr/local/nvidia/bin:/usr/local/cuda/bin:${PATH}
+LABEL com.nvidia.cuda.version="7.5"
+```
+
+For glxgears the final Dockerfile is therefore:
+
+```
+FROM debian:stretch-slim
+
+# Install glxgears
+RUN apt-get update && \
+    # Add the packages used
+    apt-get install -y --no-install-recommends \
+	mesa-utils && \
+	rm -rf /var/lib/apt/lists/*
+
+ENV LIBGL_DEBUG verbose
+
+
+# nvidia-docker hooks
+LABEL com.nvidia.volumes.needed="nvidia_driver"
+ENV LD_LIBRARY_PATH /usr/local/nvidia/lib:/usr/local/nvidia/lib64:${LD_LIBRARY_PATH}
+
+
+ENTRYPOINT ["glxgears"]
+```
+
+
 
 
