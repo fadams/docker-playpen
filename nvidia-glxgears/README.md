@@ -4,10 +4,13 @@ How to run Nvidia GPU accelerated GUI applications in Docker containers.
 
 ## Introduction
 
-Although most of the docker examples on the web tend to focus on server side applications it's perfectly possible to run GUI applications in docker containers, the "trick" is to mount the X11 socket and export the DISPLAY environment variable, that is to say in the *docker run* command include the following:
+Although most of the docker examples on the web tend to focus on server side applications it's perfectly possible to run GUI applications in docker containers. The "trick" is to mount the X11 socket and export the DISPLAY environment variable, that is to say in the *docker run* command include the following:
 
 ```
--e DISPLAY=unix$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix
+docker run --rm \
+    -e DISPLAY=unix$DISPLAY \
+    -v /tmp/.X11-unix:/tmp/.X11-unix \
+    <some GUI application>
 ```
 
 That's not quite enough though, as the X11 authentication is likely to prevent connection from the container. The simplest way to resolve that is to allow access from localhost via:
@@ -20,13 +23,49 @@ xhost local:root
 
 Enabling access to the X11 socket in this way opens a few [security holes](http://www.windowsecurity.com/whitepapers/unix_security/Securing_X_Windows.html), in particular it is possible for X11 applications in the container to capture X events (e.g. keyboard and mouse events), potentially from any window.
 
-Using token authentication (by mounting the .Xauthority file via something like -v $HOME/.Xauthority:/home/<app-user>/.Xauthority) provides finer grained control than server authentication, though is arguably no better than xhost local:root but certainly better than xhost +
+Using token authentication (by mounting the .Xauthority file provides finer grained control than server authentication, though is arguably no better than xhost local:root but certainly better than xhost +.
+
+The simplest approach to token authentication is use the XAUTHORITY environment variable, but note that typically .Xauthority files are hostname specific so for this to work it is necessary to set the container's hostname and in general it's not great to run multiple containers with the same hostname (though docker will let you).
+
+```
+docker run --rm \
+    -e DISPLAY=unix$DISPLAY \
+    -v /tmp/.X11-unix:/tmp/.X11-unix \
+    -h $(hostname) \
+    -e XAUTHORITY=$XAUTHORITY \
+    -v $XAUTHORITY:$XAUTHORITY \
+    <some GUI application>
+```
+
+In order to avoid the need to set the container's hostname it is necessary to create an additional .Xauthority file with a wildcard hostname:
+
+```
+XAUTH=${XAUTHORITY:-$HOME/.Xauthority}
+DOCKER_XAUTHORITY=${XAUTH}.docker
+cp --preserve=all $XAUTH $DOCKER_XAUTHORITY
+echo "ffff 0000  $(xauth nlist $DISPLAY | cut -d\  -f4-)" \
+    | xauth -f $DOCKER_XAUTHORITY nmerge -
+```
+
+Then use the following to run the application:
+
+```
+docker run --rm \
+    -e DISPLAY=unix$DISPLAY \
+    -v /tmp/.X11-unix:/tmp/.X11-unix \
+    -e XAUTHORITY=$DOCKER_XAUTHORITY \
+    -v $DOCKER_XAUTHORITY:$DOCKER_XAUTHORITY \
+    <some GUI application>
+```
+
+Note that the .Xauthority is recreated with a different cookie every time the X Session starts so it is necessary to recreate the wildcarded .Xauthority then too. 
+
 
 If full isolation/sandboxing is required it is necessary to bundle an X Server in the docker image, rendering to [Xvfb](https://en.wikipedia.org/wiki/Xvfb) (X11 Virtual Frame Buffer) then export the captured Frame Buffer via something like [Xpra](http://xpra.org/) or [VNC](https://en.wikipedia.org/wiki/Virtual_Network_Computing). This approach offers excellent application isolation, but requires many extra packages to be installed in the application image plus additional client software to render the display. More details on fully sandboxed approach TBD.
 
 ## Nvidia GPU Acceleration Host Requirements
 
-In an *ideal world* the following Dockerfile should suffice:
+In an *ideal world* the following Dockerfile should be enough to package a minimal OpenGL application such as glxgears:
 
 ```
 FROM debian:stretch-slim
@@ -43,7 +82,7 @@ ENV LIBGL_DEBUG verbose
 ENTRYPOINT ["glxgears"]
 ```
 
-using something like the following to run it:
+using something like the following to run it, as described in the introduction:
 
 ```
 docker run --rm \
@@ -85,7 +124,7 @@ wget -P /tmp https://github.com/NVIDIA/nvidia-docker/releases/download/v1.0.1/nv
 sudo dpkg -i /tmp/nvidia-docker*.deb && rm /tmp/nvidia-docker*.deb
 ```
 
-didn't set up the upstart configuration correctly for me, so the nvidia-docker-plugin didn't start up automatically. However, as I was able to start nvidia-docker via
+didn't set up the upstart configuration correctly for me, so the nvidia-docker-plugin didn't start up automatically on reboot. However, as I was able to manually start nvidia-docker via
 
 ```
 sudo start nvidia-docker
@@ -116,9 +155,9 @@ nvidia-docker run --rm \
 
 ## Nvidia GPU Acceleration Container Requirements
 
-Unfortunately, in addition to the host-side tweaks described above it is necessary to make a few additions to Dockerfiles in order to use launch with nvidia-docker.
+Unfortunately, in addition to the host-side tweaks described above it is necessary to make a few additions to application Dockerfiles in order to use launch with nvidia-docker.
 
-The following are likely to be required by all Dockerfiles that require Nvidia acceleration. The LABEL is used by nvidia-docker run to decide if the driver volume and the device files are required and things won't work correctly if it's not in place, unfortunately that important piece of information isn't too obvious from the documentation as it's slightly hidden away [here](https://github.com/NVIDIA/nvidia-docker/wiki/Image-inspection#nvidia-docker).
+The following Dockerfile additions are likely to be required by all Dockerfiles that require Nvidia acceleration. The LABEL is used by nvidia-docker run to decide if the driver volume and the device files are required and things won't work correctly if it's not in place, unfortunately that important piece of information isn't too obvious from the documentation as it's slightly hidden away [here](https://github.com/NVIDIA/nvidia-docker/wiki/Image-inspection#nvidia-docker).
 
 ```
 LABEL com.nvidia.volumes.needed="nvidia_driver"

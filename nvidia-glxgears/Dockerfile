@@ -29,11 +29,9 @@ RUN apt-get update && \
 
 ENV LIBGL_DEBUG verbose
 
-
 # nvidia-docker hooks
 LABEL com.nvidia.volumes.needed="nvidia_driver"
 ENV LD_LIBRARY_PATH /usr/local/nvidia/lib:/usr/local/nvidia/lib64:${LD_LIBRARY_PATH}
-
 
 ENTRYPOINT ["glxgears"]
 
@@ -44,9 +42,10 @@ ENTRYPOINT ["glxgears"]
 # docker build -t glxgears .
 #
 # To run:
-#	docker run -v /tmp/.X11-unix:/tmp/.X11-unix \
-#		-e DISPLAY=unix$DISPLAY \
-#		--device /dev/dri \
-#		glxgears
+# xhost local:root
+# nvidia-docker run --rm \
+#     -e DISPLAY=unix$DISPLAY \
+#     -v /tmp/.X11-unix:/tmp/.X11-unix \
+#     glxgears
 #
 
