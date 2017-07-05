@@ -185,15 +185,35 @@ RUN apt-get update && \
 
 ENV LIBGL_DEBUG verbose
 
-
 # nvidia-docker hooks
 LABEL com.nvidia.volumes.needed="nvidia_driver"
 ENV LD_LIBRARY_PATH /usr/local/nvidia/lib:/usr/local/nvidia/lib64:${LD_LIBRARY_PATH}
 
-
 ENTRYPOINT ["glxgears"]
 ```
 
+and the script to run it is:
 
+```
+#!/bin/bash
 
+if test -c "/dev/nvidiactl"; then
+    DOCKER_COMMAND=nvidia-docker
+else
+    DOCKER_COMMAND=docker
+fi
+
+XAUTH=${XAUTHORITY:-$HOME/.Xauthority}
+DOCKER_XAUTHORITY=${XAUTH}.docker
+cp --preserve=all $XAUTH $DOCKER_XAUTHORITY
+echo "ffff 0000  $(xauth nlist $DISPLAY | cut -d\  -f4-)" \
+    | xauth -f $DOCKER_XAUTHORITY nmerge -
+
+$DOCKER_COMMAND run --rm \
+    -e DISPLAY=unix$DISPLAY \
+    -v /tmp/.X11-unix:/tmp/.X11-unix \
+    -e XAUTHORITY=$DOCKER_XAUTHORITY \
+    -v $DOCKER_XAUTHORITY:$DOCKER_XAUTHORITY \
+    glxgears
+```
 
