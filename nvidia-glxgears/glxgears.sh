@@ -30,6 +30,7 @@ else
     DOCKER_COMMAND=docker
 fi
 
+# Create .Xauthority.docker file with wildcarded hostname.
 XAUTH=${XAUTHORITY:-$HOME/.Xauthority}
 DOCKER_XAUTHORITY=${XAUTH}.docker
 cp --preserve=all $XAUTH $DOCKER_XAUTHORITY
