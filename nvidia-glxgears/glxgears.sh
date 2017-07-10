@@ -24,7 +24,7 @@
 # with a wildcard hostname to avoid having to set the container's hostname.
 ################################################################################
 
-if test -c "/dev/nvidiactl"; then
+if test -c "/dev/nvidia-modeset"; then
     DOCKER_COMMAND=nvidia-docker
 else
     DOCKER_COMMAND=docker
@@ -38,6 +38,7 @@ echo "ffff 0000  $(xauth nlist $DISPLAY | cut -d\  -f4-)" \
     | xauth -f $DOCKER_XAUTHORITY nmerge -
 
 $DOCKER_COMMAND run --rm \
+    --device=/dev/nvidia-modeset \
     -e DISPLAY=unix$DISPLAY \
     -v /tmp/.X11-unix:/tmp/.X11-unix \
     -e XAUTHORITY=$DOCKER_XAUTHORITY \

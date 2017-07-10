@@ -114,7 +114,7 @@ X Error of failed request:  BadValue (integer parameter out of range for operati
   Current serial number in output stream:  37
 ```
 
-Fortunately Nvidia have been working on a [Docker plugin](https://github.com/NVIDIA/nvidia-docker) that makes it relatively straightforward to leverage the power of GPU acceleration.
+Fortunately Nvidia have been working on a [Docker plugin](https://github.com/NVIDIA/nvidia-docker) that makes it *relatively* straightforward to leverage the power of GPU acceleration.
 
 Note that the nvidia-docker Quick Start instructions are pretty good, but in my case I ran into a few issues. The first was that the nvidia-plugin requires nvidia-modprobe, which is available in some Linux repos, but in my case I ended up building it from [source](https://github.com/NVIDIA/nvidia-modprobe) and installing it. The second issue that I ran into was that the Ubuntu instructions:
 
@@ -153,9 +153,19 @@ nvidia-docker run --rm \
     glxgears
 ```
 
+One additional thing that I discovered was that for some reason if a container needs *--net host* adding that flag will cause issues with OpenGL/WebGL, this can be resolved by adding *--device=/dev/nvidia-modeset* to the nvidia-docker run command (see https://github.com/NVIDIA/nvidia-docker/issues/421), so the final command becomes:
+
+```
+nvidia-docker run --rm \
+    --device=/dev/nvidia-modeset \
+    -e DISPLAY=unix$DISPLAY \
+    -v /tmp/.X11-unix:/tmp/.X11-unix \
+    glxgears
+```
+
 ## Nvidia GPU Acceleration Container Requirements
 
-Unfortunately, in addition to the host-side tweaks described above it is necessary to make a few additions to application Dockerfiles in order to use launch with nvidia-docker.
+Unfortunately, in addition to the host-side tweaks described above it is necessary to make a few additions to application Dockerfiles in order to launch with nvidia-docker.
 
 The following Dockerfile additions are likely to be required by all Dockerfiles that require Nvidia acceleration. The LABEL is used by nvidia-docker run to decide if the driver volume and the device files are required and things won't work correctly if it's not in place, unfortunately that important piece of information isn't too obvious from the documentation as it's slightly hidden away [here](https://github.com/NVIDIA/nvidia-docker/wiki/Image-inspection#nvidia-docker).
 
@@ -176,6 +186,10 @@ For glxgears the final Dockerfile is therefore:
 ```
 FROM debian:stretch-slim
 
+# nvidia-docker hooks
+LABEL com.nvidia.volumes.needed="nvidia_driver"
+ENV LD_LIBRARY_PATH /usr/local/nvidia/lib:/usr/local/nvidia/lib64:${LD_LIBRARY_PATH}
+
 # Install glxgears
 RUN apt-get update && \
     # Add the packages used
@@ -185,10 +199,6 @@ RUN apt-get update && \
 
 ENV LIBGL_DEBUG verbose
 
-# nvidia-docker hooks
-LABEL com.nvidia.volumes.needed="nvidia_driver"
-ENV LD_LIBRARY_PATH /usr/local/nvidia/lib:/usr/local/nvidia/lib64:${LD_LIBRARY_PATH}
-
 ENTRYPOINT ["glxgears"]
 ```
 
@@ -197,7 +207,7 @@ and the script to run it is:
 ```
 #!/bin/bash
 
-if test -c "/dev/nvidiactl"; then
+if test -c "/dev/nvidia-modeset"; then
     DOCKER_COMMAND=nvidia-docker
 else
     DOCKER_COMMAND=docker
@@ -210,6 +220,7 @@ echo "ffff 0000  $(xauth nlist $DISPLAY | cut -d\  -f4-)" \
     | xauth -f $DOCKER_XAUTHORITY nmerge -
 
 $DOCKER_COMMAND run --rm \
+    --device=/dev/nvidia-modeset \
     -e DISPLAY=unix$DISPLAY \
     -v /tmp/.X11-unix:/tmp/.X11-unix \
     -e XAUTHORITY=$DOCKER_XAUTHORITY \

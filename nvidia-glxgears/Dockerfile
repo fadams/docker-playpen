@@ -44,6 +44,7 @@ ENTRYPOINT ["glxgears"]
 # To run:
 # xhost local:root
 # nvidia-docker run --rm \
+#     --device=/dev/nvidia-modeset \
 #     -e DISPLAY=unix$DISPLAY \
 #     -v /tmp/.X11-unix:/tmp/.X11-unix \
 #     glxgears
