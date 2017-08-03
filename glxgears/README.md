@@ -193,6 +193,7 @@ The basic gist is that it is necessary to ensure that the Guest Additions libGL 
 
 The files that seem to be required are:
 
+```
 /var/lib/VBoxGuestAdditions/lib/libGL.so.1
 /usr/lib/x86_64-linux-gnu/VBoxEGL.so
 /usr/lib/x86_64-linux-gnu/VBoxOGL.so
@@ -203,6 +204,7 @@ The files that seem to be required are:
 /usr/lib/x86_64-linux-gnu/VBoxOGLcrutil.so
 /usr/lib/x86_64-linux-gnu/VBoxOGLpackspu.so
 /usr/lib/x86_64-linux-gnu/libXcomposite.so.1
+```
 
 Which may be mounted as volumes, noting that libGL.so.1 should be mounted in the container at /usr/lib/x86_64-linux-gnu rather than /var/lib/VBoxGuestAdditions/lib.
 
