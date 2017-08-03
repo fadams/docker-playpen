@@ -1,6 +1,8 @@
-# nvidia-glxgears
+# glxgears
 
-How to run Nvidia GPU accelerated GUI applications in Docker containers.
+How to run GPU accelerated GUI applications in Docker containers.
+
+This example explains how to use native Nvidia acceleration as well as using the VirtualBox virtual GPU for containers run from inside VirtualBox VMs.
 
 ## Introduction
 
@@ -174,12 +176,39 @@ LABEL com.nvidia.volumes.needed="nvidia_driver"
 ENV LD_LIBRARY_PATH /usr/local/nvidia/lib:/usr/local/nvidia/lib64:${LD_LIBRARY_PATH}
 ```
 
+Alternatively the LD_LIBRARY_PATH could be set via *-e* or *--env* in the docker run command.
+
 Some other applications might require one or both of the following additions to the Dockerfile:
 
 ```
 ENV PATH /usr/local/nvidia/bin:/usr/local/cuda/bin:${PATH}
 LABEL com.nvidia.cuda.version="7.5"
 ```
+
+## VirtualBox Guest Additions Virtual GPU Acceleration
+
+The approach for enabling acceleration within containers that are running on VirtualBox guest machines using VirtualBox Guest Additions is *somewhat* similar to that needed for Nvidia, though the detail is rather different.
+
+The basic gist is that it is necessary to ensure that the Guest Additions libGL shared library is used *in preference* to the one shipped with the container's OpenGL and that a bunch of VirtualBox shared libraries are available for the VirtualBox libGL to use.
+
+The files that seem to be required are:
+
+/var/lib/VBoxGuestAdditions/lib/libGL.so.1
+/usr/lib/x86_64-linux-gnu/VBoxEGL.so
+/usr/lib/x86_64-linux-gnu/VBoxOGL.so
+/usr/lib/x86_64-linux-gnu/VBoxOGLerrorspu.so
+/usr/lib/x86_64-linux-gnu/VBoxOGLpassthroughspu.so
+/usr/lib/x86_64-linux-gnu/VBoxOGLarrayspu.so
+/usr/lib/x86_64-linux-gnu/VBoxOGLfeedbackspu.so
+/usr/lib/x86_64-linux-gnu/VBoxOGLcrutil.so
+/usr/lib/x86_64-linux-gnu/VBoxOGLpackspu.so
+/usr/lib/x86_64-linux-gnu/libXcomposite.so.1
+
+Which may be mounted as volumes, noting that libGL.so.1 should be mounted in the container at /usr/lib/x86_64-linux-gnu rather than /var/lib/VBoxGuestAdditions/lib.
+
+It is also necessary to ensure that /dev/vboxuser is visible to the container via *--device=/dev/vboxuser*
+
+## In Conclusion
 
 For glxgears the final Dockerfile is therefore:
 
@@ -188,7 +217,6 @@ FROM debian:stretch-slim
 
 # nvidia-docker hooks
 LABEL com.nvidia.volumes.needed="nvidia_driver"
-ENV LD_LIBRARY_PATH /usr/local/nvidia/lib:/usr/local/nvidia/lib64:${LD_LIBRARY_PATH}
 
 # Install glxgears
 RUN apt-get update && \
@@ -202,17 +230,25 @@ ENV LIBGL_DEBUG verbose
 ENTRYPOINT ["glxgears"]
 ```
 
-and the script to run it is:
+and the script to run it on either an Nvidia host or a VirtualBox guest VM is:
 
 ```
-#!/bin/bash
-
 if test -c "/dev/nvidia-modeset"; then
     DOCKER_COMMAND=nvidia-docker
+    GPU_FLAGS="-e LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64:${LD_LIBRARY_PATH}"
 else
     DOCKER_COMMAND=docker
+    if test -d "/var/lib/VBoxGuestAdditions"; then
+        VBOXPATH=/usr/lib/x86_64-linux-gnu
+        GPU_FLAGS="--device=/dev/vboxuser -v /var/lib/VBoxGuestAdditions/lib/libGL.so.1:$VBOXPATH/libGL.so.1"
+        for f in $VBOXPATH/VBox*.so $VBOXPATH/libXcomposite.so.1
+        do
+            GPU_FLAGS="${GPU_FLAGS} -v $f:$f"
+        done
+    fi
 fi
 
+# Create .Xauthority.docker file with wildcarded hostname.
 XAUTH=${XAUTHORITY:-$HOME/.Xauthority}
 DOCKER_XAUTHORITY=${XAUTH}.docker
 cp --preserve=all $XAUTH $DOCKER_XAUTHORITY
@@ -225,6 +261,7 @@ $DOCKER_COMMAND run --rm \
     -v /tmp/.X11-unix:/tmp/.X11-unix \
     -e XAUTHORITY=$DOCKER_XAUTHORITY \
     -v $DOCKER_XAUTHORITY:$DOCKER_XAUTHORITY \
+    $GPU_FLAGS \
     glxgears
 ```
 
