@@ -26,7 +26,7 @@
 
 if test -c "/dev/nvidia-modeset"; then
     DOCKER_COMMAND=nvidia-docker
-    GPU_FLAGS="-e LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64:${LD_LIBRARY_PATH}"
+    GPU_FLAGS="--device=/dev/nvidia-modeset -e LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64:${LD_LIBRARY_PATH}"
 else
     DOCKER_COMMAND=docker
     if test -d "/var/lib/VBoxGuestAdditions"; then
@@ -47,7 +47,6 @@ echo "ffff 0000  $(xauth nlist $DISPLAY | cut -d\  -f4-)" \
     | xauth -f $DOCKER_XAUTHORITY nmerge -
 
 $DOCKER_COMMAND run --rm \
-    --device=/dev/nvidia-modeset \
     -e DISPLAY=unix$DISPLAY \
     -v /tmp/.X11-unix:/tmp/.X11-unix \
     -e XAUTHORITY=$DOCKER_XAUTHORITY \

@@ -44,8 +44,7 @@ ENTRYPOINT ["glxgears"]
 #
 # if test -c "/dev/nvidia-modeset"; then
 #     DOCKER_COMMAND=nvidia-docker
-#     GPU_FLAGS="-e LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64:#   
-# ${LD_LIBRARY_PATH}"
+#     GPU_FLAGS="--device=/dev/nvidia-modeset -e LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/# local/nvidia/lib64:${LD_LIBRARY_PATH}"
 # else
 #     DOCKER_COMMAND=docker
 #     if test -d "/var/lib/VBoxGuestAdditions"; then
