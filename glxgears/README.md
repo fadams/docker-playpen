@@ -65,7 +65,7 @@ Note that the .Xauthority is recreated with a different cookie every time the X 
 
 If full isolation/sandboxing is required it is necessary to bundle an X Server in the docker image, rendering to [Xvfb](https://en.wikipedia.org/wiki/Xvfb) (X11 Virtual Frame Buffer) then export the captured Frame Buffer via something like [Xpra](http://xpra.org/) or [VNC](https://en.wikipedia.org/wiki/Virtual_Network_Computing). This approach offers excellent application isolation, but requires many extra packages to be installed in the application image plus additional client software to render the display. More details on fully sandboxed approach TBD.
 
-## Nvidia GPU Acceleration Host Requirements
+## Nvidia GPU Acceleration
 
 In an *ideal world* the following Dockerfile should be enough to package a minimal OpenGL application such as glxgears:
 
@@ -165,8 +165,6 @@ nvidia-docker run --rm \
     glxgears
 ```
 
-## Nvidia GPU Acceleration Container Requirements
-
 Unfortunately, in addition to the host-side tweaks described above it is necessary to make a few additions to application Dockerfiles in order to launch with nvidia-docker.
 
 The following Dockerfile additions are likely to be required by all Dockerfiles that require Nvidia acceleration. The LABEL is used by nvidia-docker run to decide if the driver volume and the device files are required and things won't work correctly if it's not in place, unfortunately that important piece of information isn't too obvious from the documentation as it's slightly hidden away [here](https://github.com/NVIDIA/nvidia-docker/wiki/Image-inspection#nvidia-docker).
@@ -176,7 +174,7 @@ LABEL com.nvidia.volumes.needed="nvidia_driver"
 ENV LD_LIBRARY_PATH /usr/local/nvidia/lib:/usr/local/nvidia/lib64:${LD_LIBRARY_PATH}
 ```
 
-Alternatively the LD_LIBRARY_PATH could be set via *-e* or *--env* in the docker run command.
+Alternatively the LD_LIBRARY_PATH could be set via *-e* or *--env* in the docker run command, which is probably better than hard-coding it in the container.
 
 Some other applications might require one or both of the following additions to the Dockerfile:
 
@@ -210,6 +208,12 @@ Which may be mounted as volumes, noting that libGL.so.1 should be mounted in the
 
 It is also necessary to ensure that /dev/vboxuser is visible to the container via *--device=/dev/vboxuser*
 
+## Open Source Mesa Drivers GPU Acceleration
+
+In order to use the Open Source Mesa Drivers from a container the easiest thing to do is to include the *libgl1-mesa-dri* package in the container.
+
+It is also necessary to ensure that /dev/dri is visible to the container via *--device=/dev/dri*. Note that if you forget to do this it's likely that it will still *appear* to work, but it would in fact be using the **software** renderer not the GPU.
+
 ## In Conclusion
 
 For glxgears the final Dockerfile is therefore:
@@ -224,7 +228,7 @@ LABEL com.nvidia.volumes.needed="nvidia_driver"
 RUN apt-get update && \
     # Add the packages used
     apt-get install -y --no-install-recommends \
-	mesa-utils && \
+	mesa-utils libgl1-mesa-dri && \
 	rm -rf /var/lib/apt/lists/*
 
 ENV LIBGL_DEBUG verbose
@@ -232,21 +236,26 @@ ENV LIBGL_DEBUG verbose
 ENTRYPOINT ["glxgears"]
 ```
 
-and the script to run it on either an Nvidia host or a VirtualBox guest VM is:
+and the script to run it on either an Nvidia host, a host using the Open Source Mesa drivers or a VirtualBox guest VM is:
 
 ```
 if test -c "/dev/nvidia-modeset"; then
+    # Nvidia GPU
     DOCKER_COMMAND=nvidia-docker
     GPU_FLAGS="--device=/dev/nvidia-modeset -e LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64:${LD_LIBRARY_PATH}"
 else
     DOCKER_COMMAND=docker
     if test -d "/var/lib/VBoxGuestAdditions"; then
+        # VirtualBox GPU
         VBOXPATH=/usr/lib/x86_64-linux-gnu
         GPU_FLAGS="--device=/dev/vboxuser -v /var/lib/VBoxGuestAdditions/lib/libGL.so.1:$VBOXPATH/libGL.so.1"
         for f in $VBOXPATH/VBox*.so $VBOXPATH/libXcomposite.so.1
         do
             GPU_FLAGS="${GPU_FLAGS} -v $f:$f"
         done
+    else
+        # Default to Open Source Mesa GPU
+        GPU_FLAGS="--device=/dev/dri"
     fi
 fi
 
