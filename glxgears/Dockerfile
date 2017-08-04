@@ -27,7 +27,7 @@ LABEL com.nvidia.volumes.needed="nvidia_driver"
 RUN apt-get update && \
     # Add the packages used
     apt-get install -y --no-install-recommends \
-	mesa-utils && \
+	mesa-utils libgl1-mesa-dri && \
 	rm -rf /var/lib/apt/lists/*
 
 ENV LIBGL_DEBUG verbose
@@ -43,11 +43,13 @@ ENTRYPOINT ["glxgears"]
 # To run:
 #
 # if test -c "/dev/nvidia-modeset"; then
+#     # Nvidia GPU
 #     DOCKER_COMMAND=nvidia-docker
 #     GPU_FLAGS="--device=/dev/nvidia-modeset -e LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/# local/nvidia/lib64:${LD_LIBRARY_PATH}"
 # else
 #     DOCKER_COMMAND=docker
 #     if test -d "/var/lib/VBoxGuestAdditions"; then
+#         # VirtualBox GPU
 #         VBOXPATH=/usr/lib/x86_64-linux-gnu
 #         GPU_FLAGS="--device=/dev/vboxuser -v /var/lib/VBoxGuestAdditions/lib/libGL.so.1:#
 # $VBOXPATH/libGL.so.1"
@@ -55,6 +57,9 @@ ENTRYPOINT ["glxgears"]
 #         do
 #             GPU_FLAGS="${GPU_FLAGS} -v $f:$f"
 #         done
+#     else
+#         # Default to Open Source Mesa GPU
+#         GPU_FLAGS="--device=/dev/dri"
 #     fi
 # fi
 # 
@@ -66,7 +71,6 @@ ENTRYPOINT ["glxgears"]
 #     | xauth -f $DOCKER_XAUTHORITY nmerge -
 #
 # $DOCKER_COMMAND run --rm \
-#     --device=/dev/nvidia-modeset \
 #     -e DISPLAY=unix$DISPLAY \
 #     -v /tmp/.X11-unix:/tmp/.X11-unix \
 #     -e XAUTHORITY=$DOCKER_XAUTHORITY \

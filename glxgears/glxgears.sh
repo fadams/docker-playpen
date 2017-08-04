@@ -25,17 +25,22 @@
 ################################################################################
 
 if test -c "/dev/nvidia-modeset"; then
+    # Nvidia GPU
     DOCKER_COMMAND=nvidia-docker
     GPU_FLAGS="--device=/dev/nvidia-modeset -e LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64:${LD_LIBRARY_PATH}"
 else
     DOCKER_COMMAND=docker
     if test -d "/var/lib/VBoxGuestAdditions"; then
+        # VirtualBox GPU
         VBOXPATH=/usr/lib/x86_64-linux-gnu
         GPU_FLAGS="--device=/dev/vboxuser -v /var/lib/VBoxGuestAdditions/lib/libGL.so.1:$VBOXPATH/libGL.so.1"
         for f in $VBOXPATH/VBox*.so $VBOXPATH/libXcomposite.so.1
         do
             GPU_FLAGS="${GPU_FLAGS} -v $f:$f"
         done
+    else
+        # Default to Open Source Mesa GPU
+        GPU_FLAGS="--device=/dev/dri"
     fi
 fi
 
@@ -53,3 +58,4 @@ $DOCKER_COMMAND run --rm \
     -v $DOCKER_XAUTHORITY:$DOCKER_XAUTHORITY \
     $GPU_FLAGS \
     glxgears
+
